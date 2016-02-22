@@ -249,9 +249,36 @@ class TestMarshmallowFieldToSwagger:
         res = swagger.field2property(field)
         assert set(res['enum']) == {'freddie', 'brian', 'john'}
 
+    def test_field_with_choices_enum(self):
+        import enum
+
+        class ChoicesEnum(enum.Enum):
+            freddie = 'freddie'
+            brian = 'brian'
+            john = 'john'
+
+        field = fields.Str(validate=validate.OneOf([ChoicesEnum]))
+        res = swagger.field2property(field)
+        assert set(res['enum']) == {'freddie', 'brian', 'john'}
+
     def test_field_with_choices_multiple(self):
         field = fields.Str(validate=[
             validate.OneOf(['freddie', 'brian', 'john']),
+            validate.OneOf(['brian', 'john', 'roger'])
+        ])
+        res = swagger.field2property(field)
+        assert set(res['enum']) == {'brian', 'john'}
+
+    def test_field_with_choices_enum_multiple(self):
+        import enum
+
+        class ChoicesEnum(enum.Enum):
+            freddie = 'freddie'
+            brian = 'brian'
+            john = 'john'
+
+        field = fields.Str(validate=[
+            validate.OneOf([ChoicesEnum]),
             validate.OneOf(['brian', 'john', 'roger'])
         ])
         res = swagger.field2property(field)

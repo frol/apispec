@@ -9,9 +9,7 @@ and marshmallow :class:`Schemas <marshmallow.Schema>`.
 Swagger 2.0 spec: https://github.com/wordnik/swagger-spec/blob/master/versions/2.0.md
 """
 from __future__ import absolute_import, unicode_literals
-import operator
 import warnings
-import functools
 
 from marshmallow import fields
 from marshmallow.compat import text_type, binary_type, iteritems
@@ -69,15 +67,24 @@ def field2choices(field):
     :param Field field: A marshmallow field.
     :rtype: set
     """
-    validators = [
-        set(validator.choices) for validator in field.validators
-        if hasattr(validator, 'choices')
-    ]
-    return (
-        functools.reduce(operator.and_, validators)
-        if validators
-        else None
-    )
+    all_choices = None
+
+    for validator in field.validators:
+        if hasattr(validator, 'choices'):
+            # Handle enum.Enum instance as a choices option
+            if validator.choices and hasattr(validator.choices[0], '__members__'):
+                choices = {choice.value for choice in validator.choices[0]}
+            else:
+                choices = set(validator.choices)
+
+            # If we find choices in different validators, we use only the
+            # common subset of the available choices.
+            if all_choices is None:
+                all_choices = choices
+            else:
+                all_choices &= choices
+
+    return all_choices
 
 
 def field2property(field, spec=None, use_refs=True, dump=True):
